@@ -30,11 +30,6 @@ This repository provides Kubernetes manifests to deploy a **Parasoft DTP (Develo
     └── create.sql
 ```
 
-
-Use code with caution.
-
-Copy code text to clipboard.
-
 ## Fresh Build & Deployment Instructions
 
 After cloning or downloading this repository, run the following commands from the root project directory.
