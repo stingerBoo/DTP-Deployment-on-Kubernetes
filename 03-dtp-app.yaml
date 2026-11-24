@@ -37,11 +37,11 @@ spec:
     spec:
       serviceAccountName: parasoft-account
       initContainers:
-      # 1. Czeka aż MySQL zacznie przyjmować połączenia
+      # 1. Waiting for MySQL to start accepting connections
       - name: wait-for-mysql
         image: busybox:1.36
         command: ['sh', '-c', 'until nc -z mysql 3306; do echo "Czekam na MySQL..."; sleep 3; done']
-      # 2. Kopiuje PSTRootConfig.xml z ConfigMap na dysk PVC i nadaje uprawnienia dla użytkownika parasoft
+      # 2. Copies PSTRootConfig.xml from the ConfigMap to the PVC disk and grants permissions to the 'parasoft' user.
       - name: init-dtp-config
         image: busybox:1.36
         command:
@@ -60,7 +60,7 @@ spec:
         - name: dtp-config-vol
           mountPath: /config-source
       containers:
-      # Kontener 1: Główny serwer DTP (porty 8080, 8443, 2002)
+      # Container 1: Main DTP server (ports 8080, 8443, 2002)
       - name: dtp
         image: k8s/dtp:2026.2.0
         imagePullPolicy: IfNotPresent
@@ -81,7 +81,7 @@ spec:
         volumeMounts:
         - name: dtp-data
           mountPath: /usr/local/parasoft/data
-      # Kontener 2: Extension Designer + Data Collector (porty 8314, 8082)
+      # Container 2: Extension Designer + Data Collector (ports 8314, 8082)
       - name: extension-designer
         image: k8s/dtp:2026.2.0
         imagePullPolicy: IfNotPresent
