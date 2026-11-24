@@ -1,22 +1,14 @@
 # Parasoft DTP Deployment on Kubernetes
 
-> **Disclaimer:** Przykładowa konfiguracja wdrożeniowa do celów referencyjnych (nieoficjalny przewodnik produkcyjny).
+> **Disclaimer:** Example deployment configuration for reference purposes only.
 
-Repozytorium zawiera pliki konfiguracyjne oraz manifesty Kubernetes do uruchomienia środowiska **Parasoft DTP (Development Testing Platform)** w klastrze (np. Docker Desktop).
+This repository provides Kubernetes manifests to deploy a **Parasoft DTP (Development Testing Platform)** environment (namespace: `dtp-2026-2`), including the DTP Server, Data Collector, Enterprise Pack, MySQL 8, and MongoDB 8. 
 
-## Architektura i komponenty (namespace: `dtp-2026-2`)
+## Key Prerequisites
 
-* **Parasoft DTP Server (`dtp`)** – główna aplikacja, silnik raportowania i serwer licencji (porty `8080`, `8443`, `2002`).
-* **Data Collector (`datacollector`)** – serwis REST przyjmujący wyniki testów i pliki źródłowe (port `8082`).
-* **DTP Enterprise Pack / Extension Designer (`dtpservices`)** – usługa Node.js z niestandardowymi widżetami i rozszerzeniami (port `8314`).
-* **MySQL 8 (`mysql`)** – relacyjna baza danych dla metryk, projektów i użytkowników (port `3306`).
-* **MongoDB 8 (`mongodb`)** – baza dokumentowa dla Extension Designer (port `27017`).
-
-## Wymagania wstępne i certyfikaty SSL
-
-1. Działający klaster Kubernetes oraz skonfigurowany `kubectl`.
-2. Sterownik JDBC (`mysql-connector-java-8.0.28.jar`) umieszczony w katalogu `dockerDTP/`.
-3. **Wewnętrzne certyfikaty SSL:** Certyfikaty muszą być podpisane przez wewnętrzne IT dla docelowej nazwy FQDN (np. `dtp.yourcompany.local`) i umieszczone w `dockerDTP/_cert2026/`.
+* Running Kubernetes cluster with `kubectl` configured.
+* JDBC Driver (`mysql-connector-java-8.0.28.jar`) in `dockerDTP/`.
+* Internal SSL certificates signed by your IT department placed in `dockerDTP/_cert2026/`.
 
 ## Repository Structure
 
