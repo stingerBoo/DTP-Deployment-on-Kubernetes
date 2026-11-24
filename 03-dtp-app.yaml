@@ -1,0 +1,134 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: dtp-service
+  namespace: dtp-2026-2
+spec:
+  clusterIP: None
+  selector:
+    app: dtp
+  ports:
+  - name: http
+    port: 8080
+  - name: https
+    port: 8443
+  - name: datacollector
+    port: 8082
+  - name: ed
+    port: 8314
+  - name: lic
+    port: 2002
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: dtp
+  namespace: dtp-2026-2
+spec:
+  serviceName: "dtp-service"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dtp
+  template:
+    metadata:
+      labels:
+        app: dtp
+    spec:
+      serviceAccountName: parasoft-account
+      initContainers:
+      # 1. Czeka aż MySQL zacznie przyjmować połączenia
+      - name: wait-for-mysql
+        image: busybox:1.36
+        command: ['sh', '-c', 'until nc -z mysql 3306; do echo "Czekam na MySQL..."; sleep 3; done']
+      # 2. Kopiuje PSTRootConfig.xml z ConfigMap na dysk PVC i nadaje uprawnienia dla użytkownika parasoft
+      - name: init-dtp-config
+        image: busybox:1.36
+        command:
+        - sh
+        - -c
+        - |
+          mkdir -p /usr/local/parasoft/data/conf
+          if [ ! -f /usr/local/parasoft/data/conf/PSTRootConfig.xml ]; then
+            cp /config-source/PSTRootConfig.xml /usr/local/parasoft/data/conf/PSTRootConfig.xml
+            echo "Skopiowano PSTRootConfig.xml z ConfigMap."
+          fi
+          chmod -R 777 /usr/local/parasoft/data
+        volumeMounts:
+        - name: dtp-data
+          mountPath: /usr/local/parasoft/data
+        - name: dtp-config-vol
+          mountPath: /config-source
+      containers:
+      # Kontener 1: Główny serwer DTP (porty 8080, 8443, 2002)
+      - name: dtp
+        image: k8s/dtp:2026.2.0
+        imagePullPolicy: IfNotPresent
+        args: ["--run", "dtp"]
+        env:
+        - name: PARASOFT_POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: PARASOFT_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        ports:
+        - containerPort: 8080
+        - containerPort: 8443
+        - containerPort: 2002
+        volumeMounts:
+        - name: dtp-data
+          mountPath: /usr/local/parasoft/data
+      # Kontener 2: Extension Designer + Data Collector (porty 8314, 8082)
+      - name: extension-designer
+        image: k8s/dtp:2026.2.0
+        imagePullPolicy: IfNotPresent
+        args: ["--run", "dtpservices", "--run", "datacollector", "--no-copy-data"]
+        env:
+        - name: DEP_USE_REMOTE_DB
+          value: "true"
+        - name: DEP_DB_HOSTNAME
+          value: "mongodb"
+        - name: DEP_DB_PORT
+          value: "27017"
+        ports:
+        - containerPort: 8314
+        - containerPort: 8082
+        volumeMounts:
+        - name: dtp-data
+          mountPath: /usr/local/parasoft/data
+      volumes:
+      - name: dtp-data
+        persistentVolumeClaim:
+          claimName: dtp-data-pvc
+      - name: dtp-config-vol
+        configMap:
+          name: dtp-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dtp-svc
+  namespace: dtp-2026-2
+spec:
+  type: LoadBalancer
+  selector:
+    app: dtp
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  - name: https
+    port: 8443
+    targetPort: 8443
+  - name: datacollector
+    port: 8082
+    targetPort: 8082
+  - name: ed
+    port: 8314
+    targetPort: 8314
+  - name: lic
+    port: 2002
+    targetPort: 2002
